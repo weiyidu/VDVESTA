@@ -46,19 +46,19 @@ fi
 echo 'Web Server version => '$Web_Server_version''
 
 if [ "$Web_Server_version" = "apache" ]; then
-echo -n 'Which PHP Server version you want to install [all|5.4|5.5|5.6|7.0|7.1]: '
+echo -n 'Which PHP Server version you want to install [all|5.4|5.5|5.6|7.0|7.1|7.2]: '
 read PHP_Server_version
-if [ "$PHP_Server_version" != "5.4" ] && [ "$PHP_Server_version" != "5.5" ] && [ "$PHP_Server_version" != "5.6" ] && [ "$PHP_Server_version" != "7.0" ] && [ "$PHP_Server_version" != "7.1" ] && [ "$PHP_Server_version" != "all" ]; then
-PHP_Server_version=7.1
+if [ "$PHP_Server_version" != "5.4" ] && [ "$PHP_Server_version" != "5.5" ] && [ "$PHP_Server_version" != "5.6" ] && [ "$PHP_Server_version" != "7.0" ] && [ "$PHP_Server_version" != "7.1" ] && [ "$PHP_Server_version" != "7.2" ] && [ "$PHP_Server_version" != "all" ]; then
+PHP_Server_version=all
 fi
 echo 'PHP Server version => '$PHP_Server_version''
 fi
 
 if [ "$Web_Server_version" = "nginx" ]; then
-echo -n 'Which PHP Server version you want to install [5.4|5.5|5.6|7.0|7.1]: '
+echo -n 'Which PHP Server version you want to install [5.4|5.5|5.6|7.0|7.1|7.2]: '
 read PHP_Server_version
-if [ "$PHP_Server_version" != "5.4" ] && [ "$PHP_Server_version" != "5.5" ] && [ "$PHP_Server_version" != "5.6" ] && [ "$PHP_Server_version" != "7.0" ] && [ "$PHP_Server_version" != "7.1" ]; then
-PHP_Server_version=7.1
+if [ "$PHP_Server_version" != "5.4" ] && [ "$PHP_Server_version" != "5.5" ] && [ "$PHP_Server_version" != "5.6" ] && [ "$PHP_Server_version" != "7.0" ] && [ "$PHP_Server_version" != "7.1" ] && [ "$PHP_Server_version" != "7.2" ]; then
+PHP_Server_version=7.2
 fi
 echo 'PHP Server version => '$PHP_Server_version''
 fi
@@ -171,6 +171,8 @@ yum -y update
 yum -y install yum-utils >/dev/null 2>&1
 yum-config-manager --save --setopt=C7.3.1611-base.skip_if_unavailable=true >/dev/null 2>&1
 yum-config-manager --save --setopt=C7.3.1611-updates.skip_if_unavailable=true >/dev/null 2>&1
+yum-config-manager --save --setopt=C7.4.1708-base.skip_if_unavailable=true >/dev/null 2>&1
+yum-config-manager --save --setopt=C7.4.1708-updates.skip_if_unavailable=true >/dev/null 2>&1
 yum -y install nano screen wget curl zip unzip net-tools >/dev/null 2>&1
 yum -y remove httpd* php* mysql* >/dev/null 2>&1
 #############################################################
@@ -276,9 +278,9 @@ service nginx restart >/dev/null 2>&1
 if [ -f /root/.acme.sh/$hostname_i/fullchain.cer ]; then
 rm -rf /usr/local/vesta/ssl/*
 
-ln -s /root/.acme.sh/$hostname_i/fullchain.cer /usr/local/vesta/ssl/certificate.crt
-ln -s /root/.acme.sh/$hostname_i/$hostname_i.key /usr/local/vesta/ssl/certificate.key
-
+cp -r /root/.acme.sh/$hostname_i/fullchain.cer /usr/local/vesta/ssl/certificate.crt
+cp -r /root/.acme.sh/$hostname_i/$hostname_i.key /usr/local/vesta/ssl/certificate.key
+chmod -R 664 /usr/local/vesta/ssl/*
 service vesta restart
 
 fi
@@ -738,13 +740,12 @@ fi
 
 
 if [ "$vDDoS_yn" = "y" ]; then
-
-curl -L https://github.com/duy13/vDDoS-Protection/raw/master/vddos-1.13.8-centos7 -o /usr/bin/vddos
-
-goc=`curl -L https://raw.githubusercontent.com/duy13/vDDoS-Protection/master/md5sum.txt --silent | grep "vddos-1.13.8-centos7" |awk 'NR==1 {print $1}'`
+latest_version=`curl -L https://raw.githubusercontent.com/duy13/vDDoS-Protection/master/CHANGELOG.txt|grep '*vDDoS-' |awk 'NR==1' |tr -d '*vDDoS-'|tr -d ':'`
+curl -L https://github.com/duy13/vDDoS-Protection/raw/master/vddos-$latest_version-centos7 -o /usr/bin/vddos
+goc=`curl -L https://raw.githubusercontent.com/duy13/vDDoS-Protection/master/md5sum.txt --silent | grep "vddos-$latest_version-centos7" |awk 'NR==1 {print $1}'`
 tai=`md5sum /usr/bin/vddos | awk 'NR==1 {print $1}'`
 if [ "$goc" != "$tai" ]; then
-curl -L http://1.voduy.com/vDDoS-Proxy-Protection/vddos-1.13.8-centos7 -o /usr/bin/vddos
+curl -L http://1.voduy.com/vDDoS-Proxy-Protection/vddos-$latest_version-centos7 -o /usr/bin/vddos
 fi
 
 chmod 700 /usr/bin/vddos
@@ -758,8 +759,44 @@ service nginx restart >/dev/null 2>&1
 fi
 IPWEB=`netstat -lntup|grep 8080| awk {'print $4'}| awk 'NR==1'| tr : " "| awk {'print $1'}`
 
-echo 'default http://0.0.0.0:80    http://'$IPWEB':8080    no    no    no           no
-default https://0.0.0.0:443  https://'$IPWEB':8443  no    no    /vddos/ssl/your-domain.com.pri /vddos/ssl/your-domain.com.crt' >> /vddos/conf.d/website.conf
+echo '
+default http://0.0.0.0:80    http://'$IPWEB':8080    no    no    no           no
+default https://0.0.0.0:443  https://'$IPWEB':8443  no    no    /vddos/ssl/your-domain.com.pri /vddos/ssl/your-domain.com.crt
+' >> /vddos/conf.d/website.conf
+
+# Install vDDoS Layer4 Mapping:
+curl -L https://github.com/duy13/vDDoS-Layer4-Mapping/raw/master/vddos-layer4-mapping -o /usr/bin/vddos-layer4
+chmod 700 /usr/bin/vddos-layer4
+echo 'Install vDDoS Layer4 Mapping Done!'
+
+# Install vDDoS Auto Add:
+curl -L https://github.com/duy13/vDDoS-Auto-Add/archive/master.zip -o vddos-auto-add.zip ; unzip vddos-auto-add.zip ; rm -f vddos-auto-add.zip
+mv vDDoS-Auto-Add-master /vddos/auto-add
+chmod 700 /vddos/auto-add/cron.sh; chmod 700 /vddos/auto-add/vddos-add.sh
+ln -s /vddos/auto-add/vddos-add.sh /usr/bin/vddos-add
+ln -s /vddos/auto-add/cron.sh /usr/bin/vddos-autoadd
+
+echo '# Default Setting for vddos-add command:
+
+SSL				Auto
+Cache			no
+Security		no
+HTTP_Listen		http://0.0.0.0:80
+HTTPS_Listen	https://0.0.0.0:443
+HTTP_Backend	http://'$IPWEB':8080
+HTTPS_Backend	https://'$IPWEB':8443
+' > /vddos/auto-add/setting.conf
+
+echo 'Install vDDoS Auto Add Done!'
+
+# Install vDDoS Auto Switch:
+curl -L https://github.com/duy13/vDDoS-Auto-Switch/archive/master.zip -o vddos-auto-switch.zip ; unzip vddos-auto-switch.zip ; rm -f vddos-auto-switch.zip
+mv vDDoS-Auto-Switch-master /vddos/auto-switch
+chmod 700 /vddos/auto-switch/cron.sh; chmod 700 /vddos/auto-switch/vddos-switch.sh
+ln -s /vddos/auto-switch/cron.sh /usr/bin/vddos-autoswitch
+ln -s /vddos/auto-switch/vddos-switch.sh /usr/bin/vddos-switch
+echo 'Install vDDoS Auto Switch Done!'
+
 fi
 
 
@@ -805,17 +842,28 @@ service httpd restart >/dev/null 2>&1
 service nginx restart >/dev/null 2>&1
 /root/.acme.sh/acme.sh --issue -d $hostname_i -w /vddos/letsencrypt
 	if [ -f /root/.acme.sh/$hostname_i/fullchain.cer ]; then
-	rm -rf /usr/local/vesta/ssl/*
-
-	ln -s /root/.acme.sh/$hostname_i/fullchain.cer /usr/local/vesta/ssl/certificate.crt
-	ln -s /root/.acme.sh/$hostname_i/$hostname_i.key /usr/local/vesta/ssl/certificate.key
-
-	service vesta restart 
+echo '
+'$hostname_i' https://0.0.0.0:443  https://127.0.0.1:8083  no    no    /root/.acme.sh/'$hostname_i'/'$hostname_i'.key /root/.acme.sh/'$hostname_i'/fullchain.cer
+' >> /vddos/conf.d/website.conf
+/usr/bin/vddos restart >/dev/null 2>&1
+echo "404" > /home/admin/web/$hostname_i/public_html/index.html
 	fi
 fi
 fi
-clear
 
+if [ "$vDDoS_yn" = "y" ] && [ "$Web_Server_version" = "--nginx no --apache yes --phpfpm no" ]; then
+	echo '*/15  *  *  *  * root /usr/bin/vddos-autoadd panel vestacp apache' >> /etc/crontab
+fi
+if [ "$vDDoS_yn" = "y" ] && [ "$Web_Server_version" = "--nginx yes --apache no --phpfpm yes" ]; then
+	echo '*/15  *  *  *  * root /usr/bin/vddos-autoadd panel vestacp nginx' >> /etc/crontab
+fi
+
+service vesta restart >/dev/null 2>&1
+if [ "$PHP_Selector_yn" = "y" ]; then
+curl -L https://github.com/duy13/VDVESTA/raw/master/freeram.sh -o /root/freeram.sh
+echo '*/10 * * * * root bash /root/freeram.sh' >> /etc/crontab
+fi
+clear
 if [ "$Web_Server_version" = "--nginx no --apache yes --phpfpm no" ]; then
 httpd -v
 fi
@@ -826,7 +874,7 @@ fi
 
 mysql -V
 php -v
-
+if [ "$vDDoS_yn" != "y" ]; then
 echo '
 =====> Install and Config VDVESTA Done! <=====
 VestaCP: https://'$hostname_i':2083 or https://'$IP':8083
@@ -835,3 +883,14 @@ VestaCP: https://'$hostname_i':2083 or https://'$IP':8083
 
  Please reboot!
 '
+fi
+if [ "$vDDoS_yn" = "y" ]; then
+echo '
+=====> Install and Config VDVESTA Done! <=====
+VestaCP: https://'$hostname_i'
+	username: admin
+	password: '$password'
+
+ Please reboot!
+'
+fi
