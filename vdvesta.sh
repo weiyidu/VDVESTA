@@ -27,7 +27,7 @@ A shell script auto Custom & Install VESTACP for your CentOS Server Release 7 x8
 								Thanks you for using!
 '
 
-vDDoS_yn=''; File_Manager_yn=''; Zend_opcode_yn=''; Memcached_yn=''; Limit_Hosting_yn='';
+vDDoS_yn=''; Varnish_yn=''; File_Manager_yn=''; Zend_opcode_yn=''; Memcached_yn=''; Limit_Hosting_yn='';
 Kernel_limit_DDOS_yn=''; change_port_yn=''; Web_Server_version=''; PHP_Server_version='';
 auto_config_PHP_yn=''; MariaDB_Server_version=''; Spamassassin_Clamav_yn=''; fail2ban_yn='';
 
@@ -37,6 +37,15 @@ if [ "$vDDoS_yn" != "y" ] && [ "$vDDoS_yn" != "n" ]; then
 vDDoS_yn=y
 fi
 echo 'vDDoS Proxy Protection install => '$vDDoS_yn''
+
+if [ "$vDDoS_yn" = "y" ]; then
+echo -n 'Would you like +install Varnish Cache [Y|n]: '
+read Varnish_yn
+if [ "$Varnish_yn" != "y" ] && [ "$Varnish_yn" != "n" ]; then
+Varnish_yn=y
+fi
+echo 'Varnish Proxy Server install => '$Varnish_yn''
+fi
 
 echo -n 'Which Web Server version you want to install [apache|nginx]: '
 read Web_Server_version
@@ -70,9 +79,9 @@ auto_config_PHP_yn=y
 fi
 echo 'Auto config PHP => '$auto_config_PHP_yn''
 
-echo -n 'Which MariaDB Server version you want to install [5.5|10.0|10.1]: '
+echo -n 'Which MariaDB Server version you want to install [5.5|10.0|10.1|10.2|10.3]: '
 read MariaDB_Server_version
-if [ "$MariaDB_Server_version" != "5.5" ] && [ "$MariaDB_Server_version" != "10.0" ] && [ "$MariaDB_Server_version" != "10.1" ]; then
+if [ "$MariaDB_Server_version" != "5.5" ] && [ "$MariaDB_Server_version" != "10.0" ] && [ "$MariaDB_Server_version" != "10.1" ] && [ "$MariaDB_Server_version" != "10.2" ] && [ "$MariaDB_Server_version" != "10.3" ]; then
 MariaDB_Server_version=10.1
 fi
 echo 'MariaDB Server version => '$MariaDB_Server_version''
@@ -173,7 +182,7 @@ yum-config-manager --save --setopt=C7.3.1611-base.skip_if_unavailable=true >/dev
 yum-config-manager --save --setopt=C7.3.1611-updates.skip_if_unavailable=true >/dev/null 2>&1
 yum-config-manager --save --setopt=C7.4.1708-base.skip_if_unavailable=true >/dev/null 2>&1
 yum-config-manager --save --setopt=C7.4.1708-updates.skip_if_unavailable=true >/dev/null 2>&1
-yum -y install nano screen wget curl zip unzip net-tools >/dev/null 2>&1
+yum -y install e2fsprogs nano screen wget curl zip unzip net-tools >/dev/null 2>&1
 yum -y remove httpd* php* mysql* >/dev/null 2>&1
 #############################################################
 
@@ -206,12 +215,12 @@ if [ "$MariaDB_Server_version" = "10.0" ]; then
 MariaDB_Server_version='10.1'
 fi
 
-if [ "$MariaDB_Server_version" = "10.1" ]; then
-echo '# MariaDB 10.1 CentOS repository list - created 2017-02-20 12:34 UTC
+if [ "$MariaDB_Server_version" != "5.5" ]; then
+echo '# MariaDB '$MariaDB_Server_version' CentOS repository list - created 2017-02-20 12:34 UTC
 # http://downloads.mariadb.org/mariadb/repositories/
 [mariadb]
 name = MariaDB
-baseurl = http://yum.mariadb.org/10.1/centos7-amd64
+baseurl = http://yum.mariadb.org/'$MariaDB_Server_version'/centos7-amd64
 gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
 gpgcheck=1' > /etc/yum.repos.d/MariaDB.repo
 fi
@@ -303,7 +312,7 @@ if [ "$Limit_Hosting_yn" = "y" ]; then
 yum -y install libcgroup
 yum -y install libcgroup-pam
 echo "session         optional        pam_cgroup.so" >> /etc/pam.d/su
-curl -L https://github.com/duy13/VDVESTA/raw/master/Limit-Hosting -o /usr/bin/Limit-Hosting
+curl -L https://raw.githubusercontent.com/duy13/VDVESTA/master/Limit-Hosting -o /usr/bin/Limit-Hosting
 goc=`curl -L https://raw.githubusercontent.com/duy13/VDVESTA/master/md5sum.txt --silent | grep "Limit-Hosting" |awk 'NR==1 {print $1}'`
 tai=`md5sum /usr/bin/Limit-Hosting | awk 'NR==1 {print $1}'`
 if [ "$goc" != "$tai" ]; then
@@ -462,7 +471,7 @@ source /usr/local/vesta/conf/vesta.conf >/dev/null 2>&1
 fi
 
 if [ "$File_Manager_yn" = "y" ]; then
-curl -L https://github.com/duy13/VDVESTA/raw/master/File-Manager -o File-Manager
+curl -L https://raw.githubusercontent.com/duy13/VDVESTA/master/File-Manager -o File-Manager
 goc=`curl -L https://raw.githubusercontent.com/duy13/VDVESTA/master/md5sum.txt --silent | grep "File-Manager" |awk 'NR==1 {print $1}'`
 tai=`md5sum Limit-Hosting | awk 'NR==1 {print $1}'`
 if [ "$goc" != "$tai" ]; then
@@ -496,7 +505,7 @@ source /etc/sysconfig/clock >/dev/null 2>&1
 source /usr/local/vesta/func/main.sh >/dev/null 2>&1
 source /usr/local/vesta/conf/vesta.conf >/dev/null 2>&1
 
-/usr/local/vesta/bin/v-delete-cron-job admin 8 >/dev/null 2>&1
+#/usr/local/vesta/bin/v-delete-cron-job admin 8 >/dev/null 2>&1
 
 /usr/local/vesta/bin/v-delete-user-package gainsboro >/dev/null 2>&1
 /usr/local/vesta/bin/v-delete-user-package palegreen >/dev/null 2>&1
@@ -644,7 +653,7 @@ sed -i "/.*$basedir.*/d" /usr/local/vesta/data/templates/web/httpd/nobasedir.stp
 
 if [ "$PHP_Selector_yn" = "y" ]; then
 cp -r /etc/httpd /etc/httpd-bak-$random
-curl -L https://github.com/duy13/VDVESTA/raw/master/PHP-Selector -o PHP-Selector
+curl -L https://raw.githubusercontent.com/duy13/VDVESTA/master/PHP-Selector -o PHP-Selector
 goc=`curl -L https://raw.githubusercontent.com/duy13/VDVESTA/master/md5sum.txt --silent | grep "PHP-Selector" |awk 'NR==1 {print $1}'`
 tai=`md5sum PHP-Selector | awk 'NR==1 {print $1}'`
 if [ "$goc" != "$tai" ]; then
@@ -797,6 +806,33 @@ ln -s /vddos/auto-switch/cron.sh /usr/bin/vddos-autoswitch
 ln -s /vddos/auto-switch/vddos-switch.sh /usr/bin/vddos-switch
 echo 'Install vDDoS Auto Switch Done!'
 
+
+
+if [ "$Varnish_yn" = "y" ]; then
+curl -L https://github.com/duy13/VDVARNISH/raw/master/vdvarnish.sh -o vdvarnish.sh
+goc=`curl -L https://raw.githubusercontent.com/duy13/vdvarnish/master/md5sum.txt --silent | grep "vdvarnish.sh" |awk 'NR==1 {print $1}'`
+tai=`md5sum vdvarnish.sh | awk 'NR==1 {print $1}'`
+if [ "$goc" != "$tai" ]; then
+	rm -rf vdvarnish.sh
+	curl -L https://3.voduy.com/VDVARNISH/vdvarnish.sh -o vdvarnish.sh
+fi
+bash vdvarnish.sh noask
+
+Varnish_Server_sizecache=$((`cat /proc/meminfo|grep MemTotal|awk {'print $2'}`/1024/3))
+Varnish_Server_port=82
+Varnish_Backend_ip=$IPWEB
+Varnish_Backend_port=8080
+
+sed -i "s#82#$Varnish_Server_port#g" /etc/varnish/varnish.params
+sed -i "s#512#$Varnish_Server_sizecache#g" /etc/varnish/varnish.params
+sed -i "s#127.0.0.1#$Varnish_Backend_ip#g" /etc/varnish/default.vcl
+sed -i "s#8080#$Varnish_Backend_port#g" /etc/varnish/default.vcl
+
+echo 'Install Varnish Cache Done!'
+fi
+
+
+
 fi
 
 
@@ -852,10 +888,10 @@ fi
 fi
 
 if [ "$vDDoS_yn" = "y" ] && [ "$Web_Server_version" = "--nginx no --apache yes --phpfpm no" ]; then
-	echo '*/15  *  *  *  * root /usr/bin/vddos-autoadd panel vestacp apache' >> /etc/crontab
+	echo '*/25  *  *  *  * root /usr/bin/vddos-autoadd panel vestacp apache' >> /etc/crontab
 fi
 if [ "$vDDoS_yn" = "y" ] && [ "$Web_Server_version" = "--nginx yes --apache no --phpfpm yes" ]; then
-	echo '*/15  *  *  *  * root /usr/bin/vddos-autoadd panel vestacp nginx' >> /etc/crontab
+	echo '*/25  *  *  *  * root /usr/bin/vddos-autoadd panel vestacp nginx' >> /etc/crontab
 fi
 
 service vesta restart >/dev/null 2>&1
@@ -871,7 +907,9 @@ fi
 if [ "$Web_Server_version" = "--nginx yes --apache no --phpfpm yes" ]; then
 nginx -v
 fi
-
+if [ "$Varnish_yn" = "y" ]; then
+varnishd -V
+fi
 mysql -V
 php -v
 if [ "$vDDoS_yn" != "y" ]; then
