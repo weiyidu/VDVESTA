@@ -182,7 +182,7 @@ yum-config-manager --save --setopt=C7.3.1611-base.skip_if_unavailable=true >/dev
 yum-config-manager --save --setopt=C7.3.1611-updates.skip_if_unavailable=true >/dev/null 2>&1
 yum-config-manager --save --setopt=C7.4.1708-base.skip_if_unavailable=true >/dev/null 2>&1
 yum-config-manager --save --setopt=C7.4.1708-updates.skip_if_unavailable=true >/dev/null 2>&1
-yum -y install e2fsprogs nano screen wget curl zip unzip net-tools >/dev/null 2>&1
+yum -y install e2fsprogs nano screen wget curl zip unzip net-tools nano screen wget curl zip unzip net-tools which psmisc htop sysstat e2fsprogs >/dev/null 2>&1
 yum -y remove httpd* php* mysql* >/dev/null 2>&1
 #############################################################
 
@@ -897,8 +897,12 @@ fi
 service vesta restart >/dev/null 2>&1
 if [ "$PHP_Selector_yn" = "y" ]; then
 curl -L https://github.com/duy13/VDVESTA/raw/master/freeram.sh -o /root/freeram.sh
-echo '*/10 * * * * root bash /root/freeram.sh' >> /etc/crontab
+echo '* * * * * root bash /root/freeram.sh' >> /etc/crontab
 fi
+
+curl -L https://github.com/duy13/VDVESTA/raw/master/autosuspend.sh -o /root/autosuspend.sh
+echo '3 */5 * * * root bash /root/autosuspend.sh' >> /etc/crontab
+
 clear
 if [ "$Web_Server_version" = "--nginx no --apache yes --phpfpm no" ]; then
 httpd -v
